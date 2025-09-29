@@ -15,6 +15,14 @@
     />
   </head>
   <body>
+    <div id="login">
+      <input
+        type="text"
+        id="usernameInput"
+        placeholder="Log in to see your tasks"
+      />
+      <button id="loginBtn">Login</button>
+    </div>
     <main class="todo-container">
       <header class="header">
         <div class="title-container">
@@ -30,7 +38,11 @@
         </button>
       </header>
 
-      <section class="add-task-section">
+      <section class="add-task-section" id="todoApp" style="display: none">
+        <div id="logout" class="log">
+          <h2 id="welcomeMsg"></h2>
+          <button id="logoutBtn">Logout</button>
+        </div>
         <form class="add-task-form" id="addTaskForm">
           <input
             type="text"

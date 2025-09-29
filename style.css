@@ -10,10 +10,12 @@
     --spacing-lg: 1.9rem;
     --spacing-md: 1.6rem;
     --spacing-sm: 0.9rem;
-    --spacing-xs: 0.6rem;
+    --spacing-xs: 0.4rem;
 
     --font-size-h1: 1.75rem;
+    --font-size-h2: 1.5rem;
     --font-size-body: 1rem;
+    --font-size-small: 0.875rem;
     --font-size-icon: 1.25rem;
     --font-size-icon-lg: 1.5rem;
 
@@ -33,7 +35,53 @@ body.dark-theme {
     --border-color: #2A3B5C;
     --box-shadow: 0 0.25rem 1.25rem rgba(0, 0, 0, 0.1);
 }
+#login, #logout {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin: 1rem auto;
+    padding: var(--spacing-xs);
+    max-width: 40rem;
+    background: var(--container-bg);
+    border: none;
+    border-radius: var(--border-radius-md);
+}
 
+#login input,
+#login output {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 0.75rem 0.94rem;
+    font-size: var(--font-size-body);
+    background-color: transparent;
+    color: var(--text-color);
+    outline: none;
+    transition: border-color 0.3s, background-color 0.4s, color 0.4s;
+}
+
+#login input:focus
+#login output:focus {
+    border-color: var(--primary-color);
+}
+
+#login button,
+#logout button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-small);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#login button:hover, 
+#logout button:hover {
+    color: var(--background-color);
+    transform: scale(1.1);
+}
 * {
     margin: 0;
     padding: 0;
@@ -90,10 +138,13 @@ main.todo-container {
 }
 
 .theme-toggle-btn:hover {
-    color: var(--primary-color);
     transform: scale(1.1);
+    color: var(--text-color);
 }
-
+h2 {
+    font-size: var(--font-size-h2);
+    color: var(--text-color);
+}
 .add-task-form {
     display: flex;
     gap: var(--spacing-xs);
@@ -221,6 +272,7 @@ main.todo-container {
     opacity: 1;
 }
 
+
 .add-sub-btn {
     background: none;
     border: none;
@@ -247,7 +299,11 @@ main.todo-container {
     color: var(--text-light);
     font-size: 0.875rem;
 }
-
+@media (max-width: 60rem) {
+    .delete-btn {
+            opacity: 1;
+        }
+}
 @media (max-width: 31.25rem) {
     main.todo-container {
         padding: var(--spacing-xs);
