@@ -1,3 +1,5 @@
+import { apiGetUsers, apiSaveUsers, apiGetCurrentUser, apiSetCurrentUser, apiClearCurrentUser } from './fakeApi.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Element Selection ---
     const addTaskForm = document.getElementById('addTaskForm');
@@ -11,22 +13,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const body = document.body;
 
     // --- State Management ---
+    let users = [];
     let currentUser = null;
-    let users = JSON.parse(localStorage.getItem('users')) || [];
     logoutBtn.style.display = "none"; 
 
     const EXAMPLE_TODOS = [
-        {
-            text: "Welcome to your To-Do List! 👋",
-            completed: false,
-            subtasks: [{ text: "Log in with any name to start", completed: false }]
-        },
+        { text: "Welcome to your To-Do List! 👋", completed: false, subtasks: [{ text: "Log in with any name to start", completed: false }] },
         { text: "Click on task text to complete it", completed: true, subtasks: [] },
         { text: "Use the '+' button to add subtasks", completed: false, subtasks: [] }
     ];
 
     // --- Initialization ---
-    function initializeApp() {
+    async function initializeApp() {
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         dateElement.textContent = new Date().toLocaleDateString('en-US', options);
 
@@ -36,9 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
             themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
         }
 
-        const savedUser = localStorage.getItem('currentUser');
+        users = (await apiGetUsers()) || [];
+        const savedUser = await apiGetCurrentUser();
+
         if (savedUser && getUser(savedUser)) {
-            login(savedUser);
+            await login(savedUser);
             logoutBtn.style.display = "inline-block";
         } else {
             showLoginScreen();
@@ -46,8 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Data Persistence ---
-    function saveUsers() {
-        localStorage.setItem('users', JSON.stringify(users));
+    async function saveUsers() {
+        await apiSaveUsers(users);
     }
 
     function getUser(name) {
@@ -55,10 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- UI Control ---
-    function showLoginScreen() {
+    async function showLoginScreen() {
         currentUser = null;
-        localStorage.removeItem('currentUser');
-        document.getElementById('todoApp').style.display = "block";
+        await apiClearCurrentUser();
+        document.getElementById('todoApp').style.display = "none";
         document.getElementById('login').style.display = "block";
         usernameInput.value = "";
         renderTasks();
@@ -66,15 +66,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     }
 
-    function login(username) {
+    async function login(username) {
         let user = getUser(username);
         if (!user) {
             user = { name: username, todoList: [] };
             users.push(user);
-            saveUsers();
+            await saveUsers();
         }
         currentUser = user;
-        localStorage.setItem('currentUser', username);
+        await apiSetCurrentUser(username);
         logoutBtn.style.display = "inline-block";
 
         document.getElementById('login').style.display = "none";
@@ -113,8 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
         li.innerHTML = `
             <span class="task-text">${taskText}</span>
             <div class="task-buttons">
-                <button class="add-sub-btn" aria-label="Add subtask" ${disabledAttr}><i class="fas fa-plus"></i></button>
-                <button class="delete-btn" aria-label="Delete task" ${disabledAttr}><i class="fas fa-trash"></i></button>
+                <button class="add-sub-btn" ${disabledAttr}><i class="fas fa-plus"></i></button>
+                <button class="delete-btn" ${disabledAttr}><i class="fas fa-trash"></i></button>
             </div>
             <ul class="subtask-list"></ul>`;
         return li;
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
         li.innerHTML = `
             <span class="task-text">${text}</span>
             <div class="task-buttons">
-                 <button class="delete-btn" aria-label="Delete subtask" ${disabledAttr}><i class="fas fa-trash"></i></button>
+                <button class="delete-btn" ${disabledAttr}><i class="fas fa-trash"></i></button>
             </div>`;
         return li;
     }
@@ -138,11 +138,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Event Listeners ---
     loginBtn.addEventListener('click', () => {
         const username = usernameInput.value.trim();
-        if (username) {
-            login(username);
-        } else {
-            alert("Please enter your name.");
-        }
+        if (username) login(username);
+        else alert("Please enter your name.");
     });
 
     logoutBtn.addEventListener('click', showLoginScreen);
@@ -167,17 +164,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const li = e.target.closest('li');
         if (!li) return;
 
-        const taskIndex = li.dataset.taskIndex;
-        const subtaskIndex = li.dataset.subtaskIndex;
+        const taskIndex = parseInt(li.dataset.taskIndex);
+        const subtaskIndexAttr = li.dataset.subtaskIndex;
+        const subtaskIndex = subtaskIndexAttr ? parseInt(subtaskIndexAttr) : null;
 
         if (e.target.closest('.task-text')) {
-            const list = subtaskIndex !== undefined ? currentUser.todoList[taskIndex].subtasks : currentUser.todoList;
-            const item = subtaskIndex !== undefined ? list[subtaskIndex] : list[taskIndex];
-            item.completed = !item.completed;
+            if (subtaskIndex !== null) {
+                const sub = currentUser.todoList[taskIndex].subtasks[subtaskIndex];
+                sub.completed = !sub.completed;
+            } else {
+                const task = currentUser.todoList[taskIndex];
+                task.completed = !task.completed;
+            }
         }
 
         if (e.target.closest('.delete-btn')) {
-            if (subtaskIndex !== undefined) {
+            if (subtaskIndex !== null) {
                 currentUser.todoList[taskIndex].subtasks.splice(subtaskIndex, 1);
             } else {
                 currentUser.todoList.splice(taskIndex, 1);
@@ -188,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const subText = prompt('Enter a subtask:');
             if (subText) {
                 const task = currentUser.todoList[taskIndex];
-                if (!task.subtasks) task.subtasks = [];
+                task.subtasks = task.subtasks || [];
                 task.subtasks.push({ text: subText, completed: false });
             }
         }
@@ -203,5 +205,5 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
     });
 
-    initializeApp();
+    initializeApp().catch(console.error);
 });
