@@ -1,0 +1,44 @@
+{
+  "users": [
+    {
+      "name": "alice",
+      "todoList": [
+        {
+          "id": 1,
+          "text": "Buy groceries",
+          "done": false,
+          "subtasks": [
+            {
+              "text": "bread",
+              "completed": false
+            },
+            {
+              "text": "milk",
+              "completed": false
+            },
+            {
+              "text": "eggs",
+              "completed": true
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "text": "Walk the dog",
+          "done": true
+        }
+      ]
+    },
+    {
+      "name": "bob",
+      "todoList": [
+        {
+          "id": 1,
+          "text": "Learn Node.js",
+          "done": false
+        }
+      ]
+    }
+  ],
+  "currentUser": "alice"
+}

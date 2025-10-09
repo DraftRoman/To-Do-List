@@ -1,0 +1,57 @@
+@baseUrl = http://localhost:4000/api
+
+###
+# 🧠 1. Get all users
+GET {{baseUrl}}/users
+
+###
+# 💾 2. Replace all users (PUT)
+PUT {{baseUrl}}/users
+Content-Type: application/json
+
+[
+  {
+    "name": "alice",
+    "todoList": [
+      { "id": 1, "text": "Buy groceries", "done": false, "subtasks": [
+            {
+              "text": "bread",
+              "completed": false
+            },
+            {
+              "text": "milk",
+              "completed": false
+            },
+            {
+              "text": "eggs",
+              "completed": true
+            }
+          ] },
+      { "id": 2, "text": "Walk the dog", "done": true }
+    ]
+  },
+  {
+    "name": "bob",
+    "todoList": [
+      { "id": 1, "text": "Learn Node.js", "done": false }
+    ]
+  }
+]
+
+###
+# 👤 3. Get current user
+GET {{baseUrl}}/currentUser
+
+###
+# ✍️ 4. Set current user
+POST {{baseUrl}}/currentUser
+Content-Type: application/json
+
+{
+  "username": "Alice"
+  
+}
+
+###
+# ❌ 5. Clear current user
+DELETE {{baseUrl}}/currentUser
