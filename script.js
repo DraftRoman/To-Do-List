@@ -1,209 +1,55 @@
-import { apiGetUsers, apiSaveUsers, apiGetCurrentUser, apiSetCurrentUser, apiClearCurrentUser } from './fakeApi.js';
+// --- Main Application: Functional Programming with Modular Architecture ---
+
+import { storage } from './modules/storage.js';
+import { userOperations } from './modules/userOperations.js';
+import { domOperations } from './modules/domOperations.js';
+import { businessLogic } from './modules/businessLogic.js';
+import { uiComponents } from './modules/uiComponents.js';
+import { eventHandlers } from './modules/eventHandlers.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- DOM Element Selection ---
-    const addTaskForm = document.getElementById('addTaskForm');
-    const taskInput = document.getElementById('taskInput');
-    const taskList = document.getElementById('taskList');
-    const dateElement = document.getElementById('date');
-    const themeToggleBtn = document.getElementById('themeToggle');
-    const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const usernameInput = document.getElementById('usernameInput');
-    const body = document.body;
+    // --- Application State Management (Immutable) ---
+    let appState = {
+        currentUser: null,
+        users: storage.getUsers(),
+        theme: storage.getTheme() || 'light'
+    };
 
-    // --- State Management ---
-    let users = [];
-    let currentUser = null;
-    logoutBtn.style.display = "none"; 
+    // --- Pure Function for State Updates ---
+    const updateState = (newState) => {
+        appState = { ...appState, ...newState };
+        return appState;
+    };
 
-    const EXAMPLE_TODOS = [
-        { text: "Welcome to your To-Do List! 👋", completed: false, subtasks: [{ text: "Log in with any name to start", completed: false }] },
-        { text: "Click on task text to complete it", completed: true, subtasks: [] },
-        { text: "Use the '+' button to add subtasks", completed: false, subtasks: [] }
-    ];
+    const getCurrentState = () => appState;
 
-    // --- Initialization ---
-    async function initializeApp() {
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        dateElement.textContent = new Date().toLocaleDateString('en-US', options);
-
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') {
-            body.classList.add('dark-theme');
-            themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
-        }
-
-        users = (await apiGetUsers()) || [];
-        const savedUser = await apiGetCurrentUser();
-
-        if (savedUser && getUser(savedUser)) {
-            await login(savedUser);
-            logoutBtn.style.display = "inline-block";
+    // --- Application Initialization ---
+    const initializeApp = (elements) => {
+        uiComponents.initializeDate(elements);
+        uiComponents.initializeTheme(elements, appState);
+        domOperations.hideElement(elements.logoutBtn);
+        
+        const savedUser = storage.getCurrentUser();
+        if (savedUser && userOperations.findUser(appState.users, savedUser)) {
+            const newState = businessLogic.loginUser(appState, savedUser);
+            updateState(newState);
+            uiComponents.showTodoApp(elements, savedUser);
+            uiComponents.renderTasks(elements, userOperations.getCurrentUserTasks(newState));
         } else {
-            showLoginScreen();
+            const newState = businessLogic.logoutUser(appState);
+            updateState(newState);
+            uiComponents.showLoginScreen(elements);
+            uiComponents.renderTasks(elements, eventHandlers.getExampleTodos(), true);
         }
-    }
+    };
 
-    // --- Data Persistence ---
-    async function saveUsers() {
-        await apiSaveUsers(users);
-    }
+    // --- Main Application Function ---
+    const runApp = () => {
+        const elements = domOperations.getDOMElements();
+        initializeApp(elements);
+        eventHandlers.setupEventListeners(elements, getCurrentState, updateState);
+    };
 
-    function getUser(name) {
-        return users.find(u => u.name === name);
-    }
-    
-    // --- UI Control ---
-    async function showLoginScreen() {
-        currentUser = null;
-        await apiClearCurrentUser();
-        document.getElementById('todoApp').style.display = "none";
-        document.getElementById('login').style.display = "block";
-        usernameInput.value = "";
-        renderTasks();
-        logoutBtn.style.display = "none";
-
-    }
-
-    async function login(username) {
-        let user = getUser(username);
-        if (!user) {
-            user = { name: username, todoList: [] };
-            users.push(user);
-            await saveUsers();
-        }
-        currentUser = user;
-        await apiSetCurrentUser(username);
-        logoutBtn.style.display = "inline-block";
-
-        document.getElementById('login').style.display = "none";
-        document.getElementById('todoApp').style.display = "block";
-        document.getElementById('welcomeMsg').textContent = `Welcome, ${username}!`;
-        renderTasks();
-    }
-
-    // --- Rendering Functions ---
-    function renderTasks() {
-        taskList.innerHTML = "";
-
-        const isExample = currentUser === null;
-        const tasksToRender = isExample ? EXAMPLE_TODOS : (currentUser.todoList || []);
-
-        tasksToRender.forEach((task, taskIndex) => {
-            const li = createTaskElement(task.text, task.completed, taskIndex, isExample);
-            const subList = li.querySelector('.subtask-list');
-
-            if (task.subtasks) {
-                task.subtasks.forEach((sub, subIndex) => {
-                    const subLi = createSubtaskElement(sub.text, sub.completed, taskIndex, subIndex, isExample);
-                    subList.appendChild(subLi);
-                });
-            }
-            taskList.appendChild(li);
-        });
-    }
-
-    function createTaskElement(taskText, completed, taskIndex, isExample) {
-        const li = document.createElement('li');
-        li.dataset.taskIndex = taskIndex;
-        if (completed) li.classList.add('completed');
-        const disabledAttr = isExample ? 'disabled' : '';
-
-        li.innerHTML = `
-            <span class="task-text">${taskText}</span>
-            <div class="task-buttons">
-                <button class="add-sub-btn" ${disabledAttr}><i class="fas fa-plus"></i></button>
-                <button class="delete-btn" ${disabledAttr}><i class="fas fa-trash"></i></button>
-            </div>
-            <ul class="subtask-list"></ul>`;
-        return li;
-    }
-
-    function createSubtaskElement(text, completed, taskIndex, subIndex, isExample) {
-        const li = document.createElement('li');
-        li.dataset.taskIndex = taskIndex;
-        li.dataset.subtaskIndex = subIndex;
-        if (completed) li.classList.add('completed');
-        const disabledAttr = isExample ? 'disabled' : '';
-
-        li.innerHTML = `
-            <span class="task-text">${text}</span>
-            <div class="task-buttons">
-                <button class="delete-btn" ${disabledAttr}><i class="fas fa-trash"></i></button>
-            </div>`;
-        return li;
-    }
-
-    // --- Event Listeners ---
-    loginBtn.addEventListener('click', () => {
-        const username = usernameInput.value.trim();
-        if (username) login(username);
-        else alert("Please enter your name.");
-    });
-
-    logoutBtn.addEventListener('click', showLoginScreen);
-
-    addTaskForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        if (!currentUser) return;
-        const text = taskInput.value.trim();
-        if (!text) return;
-        
-        currentUser.todoList.push({ text, completed: false, subtasks: [] });
-        saveUsers();
-        renderTasks();
-        
-        taskInput.value = '';
-        taskInput.focus();
-    });
-
-    taskList.addEventListener('click', (e) => {
-        if (!currentUser) return;
-        
-        const li = e.target.closest('li');
-        if (!li) return;
-
-        const taskIndex = parseInt(li.dataset.taskIndex);
-        const subtaskIndexAttr = li.dataset.subtaskIndex;
-        const subtaskIndex = subtaskIndexAttr ? parseInt(subtaskIndexAttr) : null;
-
-        if (e.target.closest('.task-text')) {
-            if (subtaskIndex !== null) {
-                const sub = currentUser.todoList[taskIndex].subtasks[subtaskIndex];
-                sub.completed = !sub.completed;
-            } else {
-                const task = currentUser.todoList[taskIndex];
-                task.completed = !task.completed;
-            }
-        }
-
-        if (e.target.closest('.delete-btn')) {
-            if (subtaskIndex !== null) {
-                currentUser.todoList[taskIndex].subtasks.splice(subtaskIndex, 1);
-            } else {
-                currentUser.todoList.splice(taskIndex, 1);
-            }
-        }
-
-        if (e.target.closest('.add-sub-btn')) {
-            const subText = prompt('Enter a subtask:');
-            if (subText) {
-                const task = currentUser.todoList[taskIndex];
-                task.subtasks = task.subtasks || [];
-                task.subtasks.push({ text: subText, completed: false });
-            }
-        }
-        saveUsers();
-        renderTasks();
-    });
-
-    themeToggleBtn.addEventListener('click', () => {
-        body.classList.toggle('dark-theme');
-        const isDarkMode = body.classList.contains('dark-theme');
-        themeToggleBtn.innerHTML = isDarkMode ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-        localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    });
-
-    initializeApp().catch(console.error);
+    // Initialize the application
+    runApp();
 });
