@@ -1,16 +1,23 @@
-// --- Storage Module: Pure Functions for Data Persistence ---
+// modules/storage.js
 
-/**
- * Storage operations using functional programming principles
- * All functions are pure and side-effect free
- */
+// Import all the API functions you created
+import {
+    apiGetUsers,
+    apiSaveUsers,
+    apiGetCurrentUser,
+    apiSetCurrentUser,
+    apiClearCurrentUser
+} from '../fakeApi.js';
 
 export const storage = {
-    getUsers: () => JSON.parse(localStorage.getItem('users')) || [],
-    saveUsers: (users) => localStorage.setItem('users', JSON.stringify(users)),
-    getCurrentUser: () => localStorage.getItem('currentUser'),
-    setCurrentUser: (username) => localStorage.setItem('currentUser', username),
-    removeCurrentUser: () => localStorage.removeItem('currentUser'),
+    // These functions now call the API and are ASYNCHRONOUS
+    getUsers: async () => await apiGetUsers(),
+    saveUsers: async (users) => await apiSaveUsers(users),
+    getCurrentUser: async () => await apiGetCurrentUser(),
+    setCurrentUser: async (username) => await apiSetCurrentUser(username),
+    removeCurrentUser: async () => await apiClearCurrentUser(),
+
+    // These functions correctly remain synchronous and use localStorage
     getTheme: () => localStorage.getItem('theme'),
     setTheme: (theme) => localStorage.setItem('theme', theme)
 };

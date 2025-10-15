@@ -20,12 +20,27 @@
               "text": "eggs",
               "completed": true
             }
-          ]
+          ],
+          "completed": true
         },
         {
           "id": 2,
           "text": "Walk the dog",
           "done": true
+        },
+        {
+          "text": "chores",
+          "completed": false,
+          "subtasks": [
+            {
+              "text": "clean the floor",
+              "completed": true
+            },
+            {
+              "text": "wash the windows",
+              "completed": false
+            }
+          ]
         }
       ]
     },
@@ -35,7 +50,13 @@
         {
           "id": 1,
           "text": "Learn Node.js",
-          "done": false
+          "done": false,
+          "subtasks": [
+            {
+              "text": "Use API calls ",
+              "completed": false
+            }
+          ]
         }
       ]
     }

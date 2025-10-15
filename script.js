@@ -10,10 +10,10 @@ import { eventHandlers } from './modules/eventHandlers.js';
 document.addEventListener('DOMContentLoaded', () => {
     // --- Application State Management (Immutable) ---
     let appState = {
-        currentUser: null,
-        users: storage.getUsers(),
-        theme: storage.getTheme() || 'light'
-    };
+    currentUser: null,
+    users: [], // ✅ Start with an empty array
+    theme: storage.getTheme() || 'light'
+};
 
     // --- Pure Function for State Updates ---
     const updateState = (newState) => {
@@ -24,24 +24,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const getCurrentState = () => appState;
 
     // --- Application Initialization ---
-    const initializeApp = (elements) => {
+    const initializeApp = async (elements) => {
         uiComponents.initializeDate(elements);
         uiComponents.initializeTheme(elements, appState);
         domOperations.hideElement(elements.logoutBtn);
         
-        const savedUser = storage.getCurrentUser();
-        if (savedUser && userOperations.findUser(appState.users, savedUser)) {
-            const newState = businessLogic.loginUser(appState, savedUser);
+        const allUsers = await storage.getUsers();
+        const savedUsername = await storage.getCurrentUser();
+        updateState({ users: allUsers });
+        if (savedUsername && userOperations.findUser(allUsers, savedUsername)) {
+            const newState = businessLogic.loginUser(appState, savedUsername);
             updateState(newState);
-            uiComponents.showTodoApp(elements, savedUser);
+            uiComponents.showTodoApp(elements, savedUsername);
             uiComponents.renderTasks(elements, userOperations.getCurrentUserTasks(newState));
         } else {
             const newState = businessLogic.logoutUser(appState);
             updateState(newState);
             uiComponents.showLoginScreen(elements);
             uiComponents.renderTasks(elements, eventHandlers.getExampleTodos(), true);
-        }
-    };
+    }
+};
 
     // --- Main Application Function ---
     const runApp = () => {

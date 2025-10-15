@@ -4,6 +4,7 @@ import { domOperations } from './domOperations.js';
 import { userOperations } from './userOperations.js';
 import { businessLogic } from './businessLogic.js';
 import { uiComponents } from './uiComponents.js';
+import { storage } from './storage.js';
 
 /**
  * Event handler functions using higher-order function patterns
@@ -26,11 +27,13 @@ export const eventHandlers = {
     updateAppState: null, // Will be injected from main app
 
     // Event Handler Factories (Higher-Order Functions)
-    createLoginHandler: (elements, updateState) => () => {
+    createLoginHandler: (elements, updateState) => async() => {
         const username = domOperations.getInputValue(elements.usernameInput);
         if (username) {
             const newState = businessLogic.loginUser(eventHandlers.getCurrentState(), username);
             updateState(newState);
+            await storage.setCurrentUser(username);
+            await storage.saveUsers(newState.users);
             uiComponents.showTodoApp(elements, username);
             uiComponents.renderTasks(elements, userOperations.getCurrentUserTasks(newState));
         } else {
@@ -38,14 +41,15 @@ export const eventHandlers = {
         }
     },
 
-    createLogoutHandler: (elements, updateState) => () => {
+    createLogoutHandler: (elements, updateState) => async() => {
         const newState = businessLogic.logoutUser(eventHandlers.getCurrentState());
         updateState(newState);
+        await storage.removeCurrentUser();
         uiComponents.showLoginScreen(elements);
-        uiComponents.renderTasks(elements, eventHandlers.getExampleTodos(), true);
+        uiComponents.renderTasks(elements, eventHandlers.getExampleTodos(), true);  
     },
 
-    createAddTaskHandler: (elements, updateState) => (e) => {
+    createAddTaskHandler: (elements, updateState) => async(e) => {
         e.preventDefault();
         const text = domOperations.getInputValue(elements.taskInput);
         if (!text) return;
@@ -53,13 +57,14 @@ export const eventHandlers = {
         const result = businessLogic.addTaskToCurrentUser(eventHandlers.getCurrentState(), text);
         if (result.success) {
             updateState(result.appState);
+            await storage.saveUsers(result.appState.users);
             domOperations.clearInput(elements.taskInput);
             domOperations.focusElement(elements.taskInput);
             uiComponents.renderTasks(elements, userOperations.getCurrentUserTasks(result.appState));
         }
     },
 
-    createTaskListClickHandler: (elements, updateState) => (e) => {
+    createTaskListClickHandler: (elements, updateState) => async(e) => {
         const currentState = eventHandlers.getCurrentState();
         if (!userOperations.isLoggedIn(currentState)) return;
         
@@ -73,13 +78,9 @@ export const eventHandlers = {
 
         if (e.target.closest('.task-text')) {
             result = businessLogic.toggleTaskCompletion(currentState, taskIndex, subtaskIndex);
-        }
-
-        if (e.target.closest('.delete-btn')) {
+        } else if (e.target.closest('.delete-btn')) {
             result = businessLogic.deleteTask(currentState, taskIndex, subtaskIndex);
-        }
-
-        if (e.target.closest('.add-sub-btn')) {
+        } else if (e.target.closest('.add-sub-btn')) {
             const subText = prompt('Enter a subtask:');
             if (subText) {
                 result = businessLogic.addSubtaskToTask(currentState, taskIndex, subText);
@@ -88,6 +89,7 @@ export const eventHandlers = {
 
         if (result.success) {
             updateState(result.appState);
+            await storage.saveUsers(result.appState.users);
             uiComponents.renderTasks(elements, userOperations.getCurrentUserTasks(result.appState));
         }
     },
