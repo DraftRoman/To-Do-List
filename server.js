@@ -1,42 +1,27 @@
-// server.js (final version using SQLite)
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const db = require('./database'); // Import the new database module
-const INTERNAL_PORT = 3000; 
-// const PORT = process.env.PORT || 4000;
+const db = require('./database'); // Import the database module
 
 // Initialize the database when the server starts
 db.initializeDatabase();
 
-// --- CORS Configuration (Allowing Netlify Frontend) ---
-const allowedOrigins = [
-  'http://localhost:3000', // Common local dev port
-  'http://localhost:5173', // Common local dev port
-  'https://to-do-lisk.netlify.app' // YOUR PRODUCTION FRONTEND
-];
+const app = express();
 
+// --- CORS Configuration FIX ---
+// Whitelist the Netlify frontend domain for API access
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl) or if in the allowed list
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    const msg = `CORS denied: Access from Origin ${origin} is not allowed.`;
-    return callback(new Error(msg), false);
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  credentials: true,
+    // IMPORTANT: Replace 'https://to-do-lisk.netlify.app' with your actual frontend domain if it changes
+    origin: 'https://to-do-lisk.netlify.app',
+    methods: 'GET,HEAD,PUT,POST,DELETE',
+    credentials: true, // Allow cookies/auth headers
+    optionsSuccessStatus: 204
 };
-
 app.use(cors(corsOptions));
-// --- END CORS Configuration ---
+// ---------------------------------
 
 app.use(express.json());
-// Serve static files from the current directory (though typically not needed for an API)
 app.use(express.static(__dirname));
-
-// Root path serving index.html (only for completeness, usually APIs don't serve HTML)
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 // --- API Endpoints ---
@@ -47,6 +32,7 @@ app.get('/api/users', async (req, res) => {
     const users = await db.getUsers();
     res.json(users);
   } catch (err) {
+    console.error("Error fetching users:", err.message); // Added logging
     res.status(500).json({ error: err.message });
   }
 });
@@ -58,6 +44,7 @@ app.put('/api/users', async (req, res) => {
     await db.saveUsers(users);
     res.json(true);
   } catch (err) {
+    console.error("Error saving users:", err.message); // Added logging
     res.status(500).json({ error: err.message });
   }
 });
@@ -65,11 +52,12 @@ app.put('/api/users', async (req, res) => {
 // GET currentUser
 app.get('/api/currentUser', async (req, res) => {
   try {
-    const currentUser = await db.getCurrentUser();
-    res.json(currentUser);
+   const currentUser = await db.getCurrentUser();
+   res.json(currentUser);
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+   console.error("Error fetching current user:", err.message); // Added logging
+   res.status(500).json({ error: err.message });
+ }
 });
 
 // POST currentUser { username: 'alice' }
@@ -79,6 +67,7 @@ app.post('/api/currentUser', async (req, res) => {
     await db.setCurrentUser(username ?? null);
     res.json(true);
   } catch (err) {
+    console.error("Error setting current user:", err.message); // Added logging
     res.status(500).json({ error: err.message });
   }
 });
@@ -89,9 +78,12 @@ app.delete('/api/currentUser', async (req, res) => {
     await db.setCurrentUser(null);
     res.json(true);
   } catch (err) {
+    console.error("Error clearing current user:", err.message); // Added logging
     res.status(500).json({ error: err.message });
   }
 });
 
-// Start the server using the internal port
-app.listen(INTERNAL_PORT, () => console.log(`API server running on http://localhost:${INTERNAL_PORT} (Internal Fly.io Port)`));
+// --- PORT Configuration FIX ---
+// Listen on the port specified by the environment (Fly.io) or default to 3000 (from fly.toml)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`API server running on http://localhost:${PORT}`));
