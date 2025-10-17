@@ -3,14 +3,40 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const db = require('./database'); // Import the new database module
+const INTERNAL_PORT = 3000; 
+// const PORT = process.env.PORT || 4000;
 
 // Initialize the database when the server starts
 db.initializeDatabase();
 
-const app = express();
-app.use(cors());
+// --- CORS Configuration (Allowing Netlify Frontend) ---
+const allowedOrigins = [
+  'http://localhost:3000', // Common local dev port
+  'http://localhost:5173', // Common local dev port
+  'https://to-do-lisk.netlify.app' // YOUR PRODUCTION FRONTEND
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl) or if in the allowed list
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    const msg = `CORS denied: Access from Origin ${origin} is not allowed.`;
+    return callback(new Error(msg), false);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+// --- END CORS Configuration ---
+
 app.use(express.json());
+// Serve static files from the current directory (though typically not needed for an API)
 app.use(express.static(__dirname));
+
+// Root path serving index.html (only for completeness, usually APIs don't serve HTML)
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 // --- API Endpoints ---
@@ -67,5 +93,5 @@ app.delete('/api/currentUser', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`API server running on http://localhost:${PORT}`));
+// Start the server using the internal port
+app.listen(INTERNAL_PORT, () => console.log(`API server running on http://localhost:${INTERNAL_PORT} (Internal Fly.io Port)`));

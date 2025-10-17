@@ -37,7 +37,7 @@
 
 
 // api.js
-const BASE = 'http://localhost:4000/api';
+const BASE = 'https://to-do-api.fly.dev/api';
 
 export async function apiGetUsers() {
   const res = await fetch(`${BASE}/users`);
