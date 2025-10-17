@@ -1,0 +1,65 @@
+{
+  "users": [
+    {
+      "name": "alice",
+      "todoList": [
+        {
+          "id": 1,
+          "text": "Buy groceries",
+          "done": false,
+          "subtasks": [
+            {
+              "text": "bread",
+              "completed": false
+            },
+            {
+              "text": "milk",
+              "completed": false
+            },
+            {
+              "text": "eggs",
+              "completed": true
+            }
+          ],
+          "completed": true
+        },
+        {
+          "id": 2,
+          "text": "Walk the dog",
+          "done": true
+        },
+        {
+          "text": "chores",
+          "completed": false,
+          "subtasks": [
+            {
+              "text": "clean the floor",
+              "completed": true
+            },
+            {
+              "text": "wash the windows",
+              "completed": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "bob",
+      "todoList": [
+        {
+          "id": 1,
+          "text": "Learn Node.js",
+          "done": false,
+          "subtasks": [
+            {
+              "text": "Use API calls ",
+              "completed": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "currentUser": "alice"
+}
