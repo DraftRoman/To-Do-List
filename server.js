@@ -1,44 +1,38 @@
-// server.js (CommonJS)
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs').promises;
 const path = require('path');
+const db = require('./database'); // Import the database module
 
-const DATA_FILE = path.join(__dirname, 'data.json');
-const TEMP_FILE = DATA_FILE + '.tmp';
-
-async function ensureDataFile() {
-  try {
-    await fs.access(DATA_FILE);
-  } catch {
-    // create initial file
-    await fs.writeFile(DATA_FILE, JSON.stringify({ users: [], currentUser: null }, null, 2));
-  }
-}
-
-async function readData() {
-  const raw = await fs.readFile(DATA_FILE, 'utf8');
-  return JSON.parse(raw);
-}
-
-async function writeData(data) {
-  // atomic write: write to temp then rename
-  await fs.writeFile(TEMP_FILE, JSON.stringify(data, null, 2), 'utf8');
-  await fs.rename(TEMP_FILE, DATA_FILE);
-}
+// Initialize the database when the server starts
+db.initializeDatabase();
 
 const app = express();
-app.use(cors()); // allow requests from your client origin during development
+
+// --- CORS Configuration FIX ---
+// Whitelist the Netlify frontend domain for API access
+const corsOptions = {
+    // IMPORTANT: Replace 'https://to-do-lisk.netlify.app' with your actual frontend domain if it changes
+    origin: 'https://to-do-lisk.netlify.app',
+    methods: 'GET,HEAD,PUT,POST,DELETE',
+    credentials: true, // Allow cookies/auth headers
+    optionsSuccessStatus: 204
+};
+app.use(cors(corsOptions));
+// ---------------------------------
+
 app.use(express.json());
-app.use(express.static(__dirname)); // Serve index.html, script.js, style.css
+app.use(express.static(__dirname));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
+// --- API Endpoints ---
 
 // GET users
 app.get('/api/users', async (req, res) => {
   try {
-    const data = await readData();
-    res.json(data.users);
+    const users = await db.getUsers();
+    res.json(users);
   } catch (err) {
+    console.error("Error fetching users:", err.message); // Added logging
     res.status(500).json({ error: err.message });
   }
 });
@@ -47,34 +41,33 @@ app.get('/api/users', async (req, res) => {
 app.put('/api/users', async (req, res) => {
   try {
     const users = req.body;
-    const data = await readData();
-    data.users = users;
-    await writeData(data);
+    await db.saveUsers(users);
     res.json(true);
   } catch (err) {
+    console.error("Error saving users:", err.message); // Added logging
     res.status(500).json({ error: err.message });
   }
 });
 
-// GET currentUser (returns string or null)
+// GET currentUser
 app.get('/api/currentUser', async (req, res) => {
   try {
-    const data = await readData();
-    res.json(data.currentUser);
+   const currentUser = await db.getCurrentUser();
+   res.json(currentUser);
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+   console.error("Error fetching current user:", err.message); // Added logging
+   res.status(500).json({ error: err.message });
+ }
 });
 
 // POST currentUser { username: 'alice' }
 app.post('/api/currentUser', async (req, res) => {
   try {
     const { username } = req.body || {};
-    const data = await readData();
-    data.currentUser = username ?? null;
-    await writeData(data);
+    await db.setCurrentUser(username ?? null);
     res.json(true);
   } catch (err) {
+    console.error("Error setting current user:", err.message); // Added logging
     res.status(500).json({ error: err.message });
   }
 });
@@ -82,18 +75,15 @@ app.post('/api/currentUser', async (req, res) => {
 // DELETE currentUser
 app.delete('/api/currentUser', async (req, res) => {
   try {
-    const data = await readData();
-    data.currentUser = null;
-    await writeData(data);
+    await db.setCurrentUser(null);
     res.json(true);
   } catch (err) {
+    console.error("Error clearing current user:", err.message); // Added logging
     res.status(500).json({ error: err.message });
   }
 });
 
-const PORT = process.env.PORT || 4000;
-ensureDataFile().then(() => {
-  app.listen(PORT, () => console.log(`API server running on http://localhost:${PORT}`));
-}).catch(err => {
-  console.error('Failed to initialize data file:', err);
-});
+// --- PORT Configuration FIX ---
+// Listen on the port specified by the environment (Fly.io) or default to 3000 (from fly.toml)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`API server running on http://localhost:${PORT}`));
