@@ -2,6 +2,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Install SQLite (CLI + libs for Node binding)
+RUN apk add --no-cache sqlite sqlite-libs
+
 # Install dependencies
 COPY package*.json ./
 RUN npm install --production
@@ -16,4 +19,4 @@ EXPOSE 4000
 ENV DB_PATH=/data/data.db
 
 CMD ["node", "server.js"]
-COPY data.db /data/data.db
+
