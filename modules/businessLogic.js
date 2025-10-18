@@ -37,7 +37,6 @@ export const businessLogic = {
 
     logoutUser: (appState) => {
         storage.removeCurrentUser();
-        location.reload();
         return { ...appState, currentUser: null };
     },
 
