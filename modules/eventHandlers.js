@@ -14,9 +14,9 @@ export const eventHandlers = {
     // Example data
     getExampleTodos: () => [
         {
-            text: "Welcome to your To-Do List! 👋",
+            text: `Welcome! Log in with any name to start `,
             completed: false,
-            subtasks: [{ text: "Log in with any name to start", completed: false }]
+            subtasks: [{ text: "🌟 Please log in to get started.🌟", completed: false }]
         },
         { text: "Click on task text to complete it", completed: true, subtasks: [] },
         { text: "Use the '+' button to add subtasks", completed: false, subtasks: [] }

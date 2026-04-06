@@ -23,6 +23,10 @@ export const businessLogic = {
     loginUser: (appState, username) => {
         const users = appState.users;
         let user = findUserByName(users, username);
+        const logoutButton = document.querySelector('#logout');
+        if (logoutButton) {
+            logoutButton.style.display = "block";
+        }
 
         if (!user) {
             user = userOperations.createUser(username);
@@ -37,7 +41,12 @@ export const businessLogic = {
 
     logoutUser: (appState) => {
         storage.removeCurrentUser();
-        return { ...appState, currentUser: null };
+        const newState = { ...appState, currentUser: null };
+        const logoutButton = document.querySelector('#logout');
+        if (logoutButton) {
+            logoutButton.style.display = "none";
+        }
+        return newState;
     },
 
     addTaskToCurrentUser: (appState, text) => {
